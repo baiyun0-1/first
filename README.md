@@ -108,3 +108,10 @@ __pycache__/
 *.h5
 models/
 .venv/
+---
+
+## 💻 本地运行方式
+
+### 1. 安装依赖
+```bash
+pip install -r requirements.txt

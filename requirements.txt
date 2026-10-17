@@ -1,0 +1,8 @@
+datasets==2.18.0
+pandas==2.2.1
+scikit-learn==1.4.1
+dvc==3.48.4
+mlflow==2.11.1
+fastapi==0.110.0
+uvicorn==0.28.0
+pytest==8.1.1
