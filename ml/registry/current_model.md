@@ -2,6 +2,6 @@
 
 - 模型文件：models/model_v1.pkl
 - 训练脚本 commit：待补充
-- 数据版本：imdb_v2.csv (1000条)
-- 主要指标：test_f1 = 0.7867
+- 数据版本：imdb_v2.csv
+- 主要指标：test_f1 = 0.7550
 - 更新日期：2026-10-18
