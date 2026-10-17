@@ -1,0 +1,11 @@
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+exclude = ["data", "models", "mlruns", ".venv"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
