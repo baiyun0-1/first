@@ -10,9 +10,9 @@ def main():
     ds = load_dataset("stanfordnlp/imdb", split="train")
     df = ds.to_pandas()
 
-    print("正在分层抽样 1000 条数据（正负各 500）...")
-    df_pos = df[df["label"] == 1].sample(n=500, random_state=42)
-    df_neg = df[df["label"] == 0].sample(n=500, random_state=42)
+    print("正在分层抽样 2000 条数据（正负各 1000）...")
+    df_pos = df[df["label"] == 1].sample(n=1000, random_state=42)
+    df_neg = df[df["label"] == 0].sample(n=1000, random_state=42)
 
     df_sample = (
         pd.concat([df_pos, df_neg])

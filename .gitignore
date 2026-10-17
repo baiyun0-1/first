@@ -1,0 +1,14 @@
+.env
+*.env
+data/
+!data.dvc
+mlruns/
+mlartifacts/
+__pycache__/
+*.pkl
+*.pt
+*.h5
+models/
+.venv/
+mlflow.db
+mlruns/
