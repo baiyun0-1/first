@@ -16,13 +16,19 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score
 from sklearn.pipeline import Pipeline
 
+
 # === 新增：自动获取 Git Commit SHA 和 DVC Hash 的工具函数 ===
 def get_git_commit():
     """获取当前的 Git Commit SHA"""
     try:
-        return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf-8").strip()
+        return (
+            subprocess.check_output(["git", "rev-parse", "HEAD"])
+            .decode("utf-8")
+            .strip()
+        )
     except Exception:
         return "unknown"
+
 
 def get_dvc_hash(dvc_file_path="data/imdb_v2.csv.dvc"):
     """从 .dvc 文件中提取数据的 MD5 Hash"""
@@ -31,8 +37,9 @@ def get_dvc_hash(dvc_file_path="data/imdb_v2.csv.dvc"):
             for line in f:
                 if "md5:" in line:
                     return line.split("md5:")[1].strip()
-    except Exception:
+    except Exception:  # noqa: BLE001
         return "unknown"
+
 
 def train():
     # 设置 MLflow 实验名称
@@ -42,7 +49,7 @@ def train():
         # 获取版本信息
         code_ver = get_git_commit()
         data_ver = get_dvc_hash()
-        
+
         print("1. 读取数据...")
         df = pd.read_csv("data/imdb_v2.csv")
 
