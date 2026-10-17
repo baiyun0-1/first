@@ -1,0 +1,18 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-production:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Generate .env
+        run: |
+          echo "${{ secrets.PRODUCTION_ENV_FILE }}" > .env
+          
+      - run: docker build -t ml-app:production .

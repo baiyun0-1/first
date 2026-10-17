@@ -1,0 +1,14 @@
+.git
+.github
+.venv
+__pycache__
+.env
+*.env
+data/
+mlruns/
+mlartifacts/
+*.pkl
+tests/
+*.pyc
+.pytest_cache
+.ruff_cache
