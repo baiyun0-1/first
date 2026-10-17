@@ -108,3 +108,16 @@ __pycache__/
 *.h5
 models/
 .venv/
+---
+
+## 💻 本地运行方式
+
+### 1. 安装依赖
+```bash
+pip install -r requirements.txt
+## 🌍 环境与部署说明
+
+- **开发环境**：在 `feature/*` 分支开发，通过 PR 合并到 `dev` 触发 CI 检查。
+- **预发布环境**：`dev` 合并到 `staging` 触发 `Deploy Staging` 流水线。
+- **生产环境**：`staging` 合并到 `main` 触发 `Deploy Production` 流水线。
+详情见 [DEPLOYMENT.md](DEPLOYMENT.md)。
