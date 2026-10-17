@@ -26,7 +26,7 @@ def get_git_commit():
             .decode("utf-8")
             .strip()
         )
-    except Exception:
+    except Exception:  # noqa: BLE001
         return "unknown"
 
 
