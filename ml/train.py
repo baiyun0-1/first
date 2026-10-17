@@ -1,22 +1,25 @@
 import sys
+
 # 强制 utf-8 防中文乱码
-sys.stdout.reconfigure(encoding='utf-8')
+sys.stdout.reconfigure(encoding="utf-8")
 
 import os
+from datetime import datetime
+
 import joblib
-import pandas as pd
 import mlflow
 import mlflow.sklearn
+import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score
-from datetime import datetime
 from sklearn.pipeline import Pipeline
+
 
 def train():
     # 设置 MLflow 实验名称
     mlflow.set_experiment("IMDb_Sentiment")
-    
+
     with mlflow.start_run():
         print("1. 读取数据...")
         df = pd.read_csv("data/imdb_v2.csv")
@@ -26,7 +29,7 @@ def train():
         test_df = df[df["split"] == "test"]
 
         print("2. 提取特征并训练模型 (TF-IDF + LogisticRegression)...")
-        
+
         # 【修复点】：加上 .fillna("") 防止 NaN 报错
         train_df["text"] = train_df["text"].fillna("").astype(str).str.slice(0, 1000)
         test_df["text"] = test_df["text"].fillna("").astype(str).str.slice(0, 1000)
@@ -59,7 +62,7 @@ def train():
 
         pipeline = Pipeline([("tfidf", vectorizer), ("clf", model)])
         joblib.dump(pipeline, model_path)
-        
+
         # 把模型存入 MLflow
         mlflow.sklearn.log_model(pipeline, "model")
         print(f"[OK] 模型已保存至: {model_path}")
@@ -75,6 +78,7 @@ def train():
         with open("ml/registry/current_model.md", "w", encoding="utf-8") as f:
             f.write(md_content)
         print("[OK] 已更新 ml/registry/current_model.md")
+
 
 if __name__ == "__main__":
     train()
