@@ -1,5 +1,5 @@
 # 数据版本对比实验：在清洗后的 data-v2 上训练（与 baseline 相同的调参范围）
-run_name: cleaned-v2
+run_name: improved-v2-cleaned
 data: data/imdb_v4.csv
 dvc_file: data/imdb_v4.csv.dvc
 model: models/model_v2.pkl
