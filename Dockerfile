@@ -14,13 +14,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # 只拷贝推理真正需要的东西：
 # app/ 是服务代码，models/ 是训练产物（model_v1.pkl 已入库，clone 即可构建）
-COPY app/ ./app/
-COPY models/ ./models/
+COPY --chown=10001:10001 app/ ./app/
+COPY --chown=10001:10001 models/ ./models/
 
-# 以非 root 用户运行
-RUN useradd --create-home --uid 10001 appuser \
-    && chown -R appuser:appuser /app
-USER appuser
+# 以非 root 运行：直接用数字 UID，不依赖镜像里是否存在 useradd
+USER 10001:10001
 
 EXPOSE 8000
 
