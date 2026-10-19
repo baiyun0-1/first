@@ -7,10 +7,11 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
-# ==== MLflow 本地实验数据 ====
+# ==== MLflow 实验产物 ====
+# mlflow.db 入库，评分者 clone 后可直接查看 run history；
+# mlruns/ 与 mlartifacts/ 体积较大，仍不入库。
 mlruns/
 mlartifacts/
-mlflow.db
 
 # ==== DVC 数据 ====
 # 原始数据由 data/.gitignore（DVC 自动维护）逐文件忽略，这里不要再写 data/ 或 data/*：
