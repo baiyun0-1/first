@@ -59,8 +59,11 @@
 │   └── PROVENANCE.md           # 代码 → 数据 → 模型 溯源表
 ├── models/
 │   └── model_v1.pkl            # 生产模型（入库，保证 docker build 可复现）
+├── mlflow.db                   # MLflow SQLite 后端（入库，含 15 个 run）
+├── docs/
+│   └── mlflow_runs.md          # MLflow run 静态摘要
 ├── data/                       # 原始数据目录（只提交 .dvc 指针，不提交数据）
-├── tests/                      # 单元测试（49 个用例）
+├── tests/                      # 单元测试（50 个用例）
 ├── .github/workflows/          # ci.yml / deploy-staging.yml / deploy-production.yml
 ├── Dockerfile
 ├── .dockerignore
@@ -102,9 +105,9 @@ dvc checkout                   # 把工作区数据切换到 data-v1
 
 ## 4. 模型与实验追踪 (MLflow)
 
-- **追踪后端**：本地 SQLite，`sqlite:///mlflow.db`（可由 `MLFLOW_TRACKING_URI` 覆盖）。
+- **追踪后端**：SQLite，`sqlite:///mlflow.db`；`mlflow.db` 已入库，clone 后可直接查看 15 个 run（可由 `MLFLOW_TRACKING_URI` 覆盖）。
 - **每个 run 记录**：`git_commit_sha`、`dvc_dataset_hash`、`data_path`、`max_features`、`ngram_range`、`C`、`min_df`、`sublinear_tf`、`test_f1`，以及模型 artifact（`mlflow.sklearn.log_model` + `.pkl`）。
-- **当前生产模型**：`models/model_v1.pkl`，在 `data-v1` 上训练，**test F1 = 0.8328**。
+- **当前生产模型**：`models/model_v1.pkl`，在 `data-v1` 上训练，**test F1 = 0.8328**；MLflow run `baseline-v1`（run_id `81cf73188a7b4013bc5985130a48eb31`）。
 - **实验对比**：
 
 | run | 数据 | C | max_features | F1 |
@@ -114,19 +117,20 @@ dvc checkout                   # 把工作区数据切换到 data-v1
 | `improved-v2-cleaned` | data-v2 | 2.0 | 20,000 | 0.7525 |
 
 - 查看实验：`mlflow ui --backend-store-uri sqlite:///mlflow.db`
+- 静态摘要：[`docs/mlflow_runs.md`](docs/mlflow_runs.md)（含全部 15 个 run 的参数与指标）；`mlruns/` 未入库，模型 artifact 以 `models/model_v1.pkl` 为准。
 - 选择理由与调参结论见 [`ml/README_experiments.md`](ml/README_experiments.md)。
 
 ---
 
 ## 5. CI/CD 自动化流水线
 
-采用 `feature -> dev -> staging -> main` 四层分支模型，`dev` 与 `main` 已开启分支保护（PR 合并前必须通过 CI）。
+采用 `feature -> dev -> staging -> main` 四层分支模型，`dev`、`staging`、`main` 均已开启分支保护，PR 合并前必须通过 CI。
 
 ```text
 [feature/*]
     │ Open PR
     ▼
-[ dev ]  ──▶ CI：ruff + black + pytest（49 个用例）
+[ dev ]  ──▶ CI：ruff + black + pytest（50 个用例）
     │            + docker build + 容器冒烟（/health 断言 model_loaded、/predict）
     │ Merge PR
     ▼
@@ -142,7 +146,7 @@ dvc checkout                   # 把工作区数据切换到 data-v1
 | push 到 `staging` | `deploy-staging.yml` | 用 `staging` environment 的 Secrets 生成 `.env`，构建 `ml-app:staging` |
 | push 到 `main` | `deploy-production.yml` | 用 `production` environment 的 Secrets 生成 `.env`，构建 `ml-app:production` |
 
-CI 失败时 PR 无法合并（分支保护）。镜像冒烟测试会真正启动容器并断言 `model_loaded=true`，避免出现「镜像能 build、但里面没有模型」的情况。
+`dev`、`staging`、`main` 都配置了 required status checks（`Lint & Test`、`Build & Smoke-test Image`），CI 失败时 PR 无法合并。镜像冒烟测试会真正启动容器并断言 `model_loaded=true`，避免出现「镜像能 build、但里面没有模型」的情况。
 
 ---
 
