@@ -1,4 +1,6 @@
-"""训练脚本测试：版本信息提取、流水线构建、训练/评估、异常输入。"""
+"""训练脚本测试：版本信息提取、流水线构建、训练/评估、异常输入、配置文件。"""
+
+from pathlib import Path
 
 import joblib
 import pandas as pd
@@ -11,6 +13,7 @@ from ml.train import (
     build_pipeline,
     get_dvc_hash,
     get_git_commit,
+    load_config,
     load_split,
     train_model,
 )
@@ -140,3 +143,38 @@ def test_train_model_rejects_missing_test_split():
 
     with pytest.raises(ValueError):
         train_model(df)
+
+
+# ------------------------------------------------------------------ 配置文件
+def test_load_config_reads_yaml(tmp_path):
+    config_file = tmp_path / "cfg.yaml"
+    config_file.write_text("run_name: demo\nC: 2.0\n", encoding="utf-8")
+
+    cfg = load_config(str(config_file))
+
+    assert cfg["run_name"] == "demo"
+    assert cfg["C"] == 2.0
+
+
+def test_load_config_rejects_non_mapping(tmp_path):
+    config_file = tmp_path / "cfg.yaml"
+    config_file.write_text("- 1\n- 2\n", encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        load_config(str(config_file))
+
+
+def test_load_config_missing_file(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        load_config(str(tmp_path / "missing.yaml"))
+
+
+@pytest.mark.parametrize("name", ["baseline.yaml", "improved.yaml", "cleaned-v2.yaml"])
+def test_project_configs_are_usable(name):
+    config_path = Path(__file__).resolve().parents[1] / "ml" / "configs" / name
+
+    cfg = load_config(str(config_path))
+
+    assert cfg["data"].startswith("data/")
+    assert cfg["dvc_file"].endswith(".dvc")
+    assert cfg["C"] > 0

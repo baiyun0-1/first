@@ -1,8 +1,9 @@
 """训练 IMDb 情感分类模型，并把参数 / 指标 / 模型记录到 MLflow。
 
 用法：
-    python -m ml.train
-    python -m ml.train --data data/imdb_v2.csv --model models/model_v1.pkl
+    python -m ml.train                      # 使用默认超参
+    python -m ml.train --config ml/configs/improved.yaml
+    python -m ml.train --data data/imdb_v4.csv --C 2.0 --max-features 20000
 """
 
 import argparse
@@ -12,6 +13,7 @@ from datetime import datetime
 
 import joblib
 import pandas as pd
+import yaml
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score
@@ -52,6 +54,15 @@ def get_dvc_hash(dvc_file_path=DEFAULT_DVC_FILE):
     return "unknown"
 
 
+def load_config(config_path):
+    """读取 YAML 超参配置（ml/configs/*.yaml）。"""
+    with open(config_path, encoding="utf-8") as f:
+        cfg = yaml.safe_load(f) or {}
+    if not isinstance(cfg, dict):
+        raise ValueError(f"配置文件 {config_path} 必须是一个 YAML 字典")
+    return cfg
+
+
 def load_split(data_path=DEFAULT_DATA_PATH, split="train"):
     """读取数据文件的某个 split，并做基础校验。"""
     df = pd.read_csv(data_path)
@@ -64,13 +75,25 @@ def load_split(data_path=DEFAULT_DATA_PATH, split="train"):
     return subset.reset_index(drop=True)
 
 
-def build_pipeline(max_features=10000, ngram_range=(1, 2), C=1.0, random_state=42):
-    """TF-IDF(1-2gram) + LogisticRegression 的推理流水线。"""
+def build_pipeline(
+    max_features=10000,
+    ngram_range=(1, 2),
+    C=1.0,
+    min_df=1,
+    sublinear_tf=False,
+    random_state=42,
+):
+    """TF-IDF(n-gram) + LogisticRegression 的推理流水线。"""
     return Pipeline(
         [
             (
                 "tfidf",
-                TfidfVectorizer(max_features=max_features, ngram_range=ngram_range),
+                TfidfVectorizer(
+                    max_features=max_features,
+                    ngram_range=tuple(ngram_range),
+                    min_df=min_df,
+                    sublinear_tf=sublinear_tf,
+                ),
             ),
             ("clf", LogisticRegression(C=C, random_state=random_state)),
         ]
@@ -81,7 +104,15 @@ def _prepare_text(series):
     return series.fillna("").astype(str).str.slice(0, MAX_TEXT_LENGTH)
 
 
-def train_model(df, max_features=10000, ngram_range=(1, 2), C=1.0, random_state=42):
+def train_model(
+    df,
+    max_features=10000,
+    ngram_range=(1, 2),
+    C=1.0,
+    min_df=1,
+    sublinear_tf=False,
+    random_state=42,
+):
     """在 train split 上训练、test split 上评估，返回 (pipeline, f1)。"""
     if df is None or df.empty:
         raise ValueError("训练数据为空")
@@ -98,6 +129,8 @@ def train_model(df, max_features=10000, ngram_range=(1, 2), C=1.0, random_state=
         max_features=max_features,
         ngram_range=ngram_range,
         C=C,
+        min_df=min_df,
+        sublinear_tf=sublinear_tf,
         random_state=random_state,
     )
     pipeline.fit(_prepare_text(train_df[TEXT_COLUMN]), train_df[LABEL_COLUMN])
@@ -125,56 +158,87 @@ def write_registry(model_path, datapath_label, commit, dvc_hash, f1):
 
 def main():
     parser = argparse.ArgumentParser(description="训练 IMDb 情感分类模型")
-    parser.add_argument("--data", default=DEFAULT_DATA_PATH, help="训练数据 CSV")
     parser.add_argument(
-        "--dvc-file", default=DEFAULT_DVC_FILE, help="数据对应的 .dvc 指针"
+        "--config", default=None, help="YAML 超参配置，如 ml/configs/improved.yaml"
     )
-    parser.add_argument("--model", default=DEFAULT_MODEL_PATH, help="模型输出路径")
+    parser.add_argument("--data", default=None, help="训练数据 CSV")
+    parser.add_argument("--dvc-file", default=None, help="数据对应的 .dvc 指针")
+    parser.add_argument("--model", default=None, help="模型输出路径")
     parser.add_argument(
         "--experiment", default=DEFAULT_EXPERIMENT, help="MLflow 实验名"
     )
     parser.add_argument("--run-name", default=None, help="MLflow run 名称")
-    parser.add_argument("--max-features", type=int, default=10000)
-    parser.add_argument("--C", type=float, default=1.0, help="逻辑回归正则强度倒数")
+    parser.add_argument("--max-features", type=int, default=None)
+    parser.add_argument("--C", type=float, default=None, help="逻辑回归正则强度倒数")
     args = parser.parse_args()
+
+    cfg = load_config(args.config) if args.config else {}
+
+    def pick(cli_value, key, default):
+        """优先级：命令行 > 配置文件 > 默认值。"""
+        if cli_value is not None:
+            return cli_value
+        return cfg.get(key, default)
+
+    data_path = pick(args.data, "data", DEFAULT_DATA_PATH)
+    dvc_file = pick(args.dvc_file, "dvc_file", DEFAULT_DVC_FILE)
+    model_path = pick(args.model, "model", DEFAULT_MODEL_PATH)
+    max_features = pick(args.max_features, "max_features", 10000)
+    C = pick(args.C, "C", 1.0)
+    ngram_range = tuple(cfg.get("ngram_range", (1, 2)))
+    min_df = cfg.get("min_df", 1)
+    sublinear_tf = bool(cfg.get("sublinear_tf", False))
+    run_name = pick(args.run_name, "run_name", None) or (
+        f"tfidf-lr-{datetime.now():%Y%m%d-%H%M%S}"
+    )
 
     # 延迟导入：只是为了跑单元测试时不必安装/启动 mlflow
     import mlflow
     import mlflow.sklearn
 
-    run_name = args.run_name or f"tfidf-lr-{datetime.now():%Y%m%d-%H%M%S}"
     commit = get_git_commit()
-    dvc_hash = get_dvc_hash(args.dvc_file)
+    dvc_hash = get_dvc_hash(dvc_file)
 
-    print(f"1. 读取数据 {args.data} ...")
-    df = pd.read_csv(args.data)
+    print(f"1. 读取数据 {data_path} ...")
+    df = pd.read_csv(data_path)
 
     mlflow.set_tracking_uri(DEFAULT_TRACKING_URI)
     mlflow.set_experiment(args.experiment)
 
     with mlflow.start_run(run_name=run_name):
         print("2. 训练 TF-IDF + LogisticRegression ...")
-        pipeline, f1 = train_model(df, max_features=args.max_features, C=args.C)
+        pipeline, f1 = train_model(
+            df,
+            max_features=max_features,
+            ngram_range=ngram_range,
+            C=C,
+            min_df=min_df,
+            sublinear_tf=sublinear_tf,
+        )
 
         mlflow.log_param("git_commit_sha", commit)
         mlflow.log_param("dvc_dataset_hash", dvc_hash)
-        mlflow.log_param("data_path", args.data)
+        mlflow.log_param("data_path", data_path)
         mlflow.log_param("model_type", "LogisticRegression")
-        mlflow.log_param("max_features", args.max_features)
-        mlflow.log_param("ngram_range", "(1,2)")
-        mlflow.log_param("C", args.C)
+        mlflow.log_param("max_features", max_features)
+        mlflow.log_param("ngram_range", str(ngram_range))
+        mlflow.log_param("C", C)
+        mlflow.log_param("min_df", min_df)
+        mlflow.log_param("sublinear_tf", sublinear_tf)
         mlflow.log_param("max_text_length", MAX_TEXT_LENGTH)
         mlflow.log_metric("test_f1", f1)
         print(f"[OK] 训练完成，Test F1-score: {f1:.4f}")
 
         print("3. 保存模型 ...")
-        os.makedirs(os.path.dirname(args.model) or ".", exist_ok=True)
-        joblib.dump(pipeline, args.model)
+        os.makedirs(os.path.dirname(model_path) or ".", exist_ok=True)
+        joblib.dump(pipeline, model_path)
         mlflow.sklearn.log_model(pipeline, name="model")
-        mlflow.log_artifact(args.model)
-        print(f"[OK] 模型已保存至: {args.model}")
+        mlflow.log_artifact(model_path)
+        if args.config:
+            mlflow.log_artifact(args.config)
+        print(f"[OK] 模型已保存至: {model_path}")
 
-        write_registry(args.model, args.data, commit, dvc_hash, f1)
+        write_registry(model_path, data_path, commit, dvc_hash, f1)
 
     return f1
 
