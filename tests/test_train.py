@@ -16,6 +16,7 @@ from ml.train import (
     load_config,
     load_split,
     train_model,
+    write_registry,
 )
 
 
@@ -178,3 +179,17 @@ def test_project_configs_are_usable(name):
     assert cfg["data"].startswith("data/")
     assert cfg["dvc_file"].endswith(".dvc")
     assert cfg["C"] > 0
+
+
+# ------------------------------------------------------------------ registry
+def test_write_registry_skips_non_production_model(tmp_path):
+    """调参/对比实验的产物不能覆盖生产 registry。"""
+    written = write_registry(
+        str(tmp_path / "model_tuned.pkl"),
+        "data/imdb_v2.csv",
+        "abcdef12",
+        "deadbeef",
+        0.8,
+    )
+
+    assert written is False

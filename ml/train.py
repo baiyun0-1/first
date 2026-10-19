@@ -140,7 +140,15 @@ def train_model(
 
 
 def write_registry(model_path, datapath_label, commit, dvc_hash, f1):
-    """把「当前生产模型」写进 ml/registry/current_model.md。"""
+    """把「当前生产模型」写进 ml/registry/current_model.md。
+
+    只有训练产物落在生产模型路径时才更新，避免调参 / 对比实验覆盖 registry。
+    返回是否真的写入。
+    """
+    if os.path.abspath(model_path) != os.path.abspath(DEFAULT_MODEL_PATH):
+        print(f"[SKIP] {model_path} 不是生产模型路径，跳过 registry 更新")
+        return False
+
     content = f"""# Current Production Model
 
 - 模型文件：{model_path}
@@ -154,6 +162,7 @@ def write_registry(model_path, datapath_label, commit, dvc_hash, f1):
     with open(DEFAULT_REGISTRY_PATH, "w", encoding="utf-8") as f:
         f.write(content)
     print(f"[OK] 已更新 {DEFAULT_REGISTRY_PATH}")
+    return True
 
 
 def main():
