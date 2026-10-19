@@ -1,14 +1,29 @@
+# ==== 环境与缓存 ====
 .env
 *.env
-data/
-!data.dvc
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# ==== MLflow 本地实验数据（使用本地 file backend）====
 mlruns/
 mlartifacts/
-__pycache__/
+mlflow.db
+
+# ==== DVC 数据 ====
+# 原始数据不入 Git，只提交 .dvc 指针文件。
+# 注意必须用 data/* 而不是 data/，否则 git 不会进入该目录，!data/*.dvc 无法生效。
+data/*
+!data/*.dvc
+!data/.gitkeep
+!data/.gitignore
+
+# ==== 模型产物 ====
+# 推理服务需要的 model_v1.pkl 必须入库：CI / docker build 只 checkout 代码，
+# 不执行 dvc pull，因此镜像里的模型只能来自 Git。
 *.pkl
+!models/model_v1.pkl
 *.pt
 *.h5
-models/
-.venv/
-mlflow.db
-mlruns/
