@@ -1,0 +1,12 @@
+# 调参配置：在 data-v1 上扩大词表、限制低频词、启用 sublinear_tf
+# 与 baseline.yaml 的唯一差异就是这三项超参，便于对比「tuned vs baseline」
+# 注意：实验产物写到 model_tuned.pkl，不要覆盖生产模型 models/model_v1.pkl
+run_name: improved-tuned
+data: data/imdb_v2.csv
+dvc_file: data/imdb_v2.csv.dvc
+model: models/model_tuned.pkl
+max_features: 30000
+ngram_range: [1, 2]
+C: 2.0
+min_df: 2
+sublinear_tf: true

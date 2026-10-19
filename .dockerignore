@@ -1,14 +1,32 @@
+# 版本控制与 CI 配置
 .git
 .github
+.gitignore
+.dvc
+.dvcignore
+.dockerignore
+
+# Python 缓存与虚拟环境
 .venv
 __pycache__
-.env
-*.env
-data/
-mlruns/
-mlartifacts/
-*.pkl
-tests/
 *.pyc
+*.pyo
 .pytest_cache
 .ruff_cache
+
+# 环境变量（由 GitHub Secrets 在部署阶段生成）
+.env
+*.env
+
+# 训练用数据：推理镜像不需要，且体积大（由 DVC 管理）
+data/
+ml/
+
+# 实验记录
+mlruns/
+mlartifacts/
+mlflow.db
+
+# 测试与文档：运行镜像不需要
+tests/
+*.md
