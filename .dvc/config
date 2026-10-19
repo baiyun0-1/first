@@ -1,4 +1,5 @@
 [core]
-    remote = myremote
-['remote "myremote"']
-    url = /c/Users/xcddn/Desktop/dvc_storage
+    remote = myazure
+['remote "myazure"']
+    url = azure://dvc
+    account_name = wut2026

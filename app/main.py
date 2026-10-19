@@ -2,23 +2,30 @@ import os
 from contextlib import asynccontextmanager
 
 import joblib
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
 
-# 默认路径，但允许通过环境变量 MODEL_PATH 覆盖
+# 默认路径，可通过环境变量覆盖（Dockerfile 中设置为 /app/models/model_v1.pkl）
 MODEL_PATH = os.environ.get("MODEL_PATH", "models/model_v1.pkl")
+# 与训练脚本保持一致的截断长度
+MAX_TEXT_LENGTH = int(os.environ.get("MAX_TEXT_LENGTH", "1000"))
+
 model = None
 
 
-# 使用最新的 lifespan 机制加载模型，替代被弃用的 on_event
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """启动时加载模型。
+
+    模型缺失时不让进程崩溃：容器仍能通过 /health 探活，
+    /predict 返回 503，便于在编排系统里看出是「模型没挂上」而不是「服务挂了」。
+    """
     global model
     if os.path.exists(MODEL_PATH):
         model = joblib.load(MODEL_PATH)
         print(f"[OK] 成功加载模型: {MODEL_PATH}")
     else:
-        print(f"[WARN] 找不到模型: {MODEL_PATH}，请先运行训练脚本。")
+        print(f"[WARN] 找不到模型: {MODEL_PATH}，/predict 将返回 503")
     yield
 
 
@@ -26,7 +33,7 @@ app = FastAPI(title="IMDb Sentiment API", lifespan=lifespan)
 
 
 class PredictRequest(BaseModel):
-    text: str
+    text: str = Field(..., min_length=1, max_length=100_000)
 
 
 @app.get("/health")
@@ -37,17 +44,14 @@ def health():
 @app.post("/predict")
 def predict(request: PredictRequest):
     if model is None:
-        return {"error": "Model not loaded"}
+        raise HTTPException(status_code=503, detail="Model not loaded")
 
-    # 预测
-    text = request.text[:1000]  # 截断保护
-    pred = model.predict([text])[0]
-
-    # 修复点：使用内置的 max() 函数，兼容 list 和 numpy array
+    text = request.text[:MAX_TEXT_LENGTH]
+    pred = int(model.predict([text])[0])
     probs = model.predict_proba([text])[0]
-    prob = max(probs)
+    confidence = float(max(probs))
 
     return {
         "sentiment": "positive" if pred == 1 else "negative",
-        "confidence": round(float(prob), 4),
+        "confidence": round(confidence, 4),
     }
