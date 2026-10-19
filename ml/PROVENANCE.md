@@ -10,7 +10,7 @@
 | 数据版本 | `data-v1`（`data/imdb_v2.csv`，2000 条） |
 | 数据 DVC md5 | `48978ce7a8aa6e804962a2f4af700159` |
 | 数据 tag / commit | `data-v1` → `e152ed9192551d27828661eb62fb77616624e1eb` |
-| 训练脚本 commit | `849c9beb09de31ed458e9055b7afe9b57155b30f` |
+| 训练脚本 commit | `e73dd4d3984d00f384252d072357fa0d8ec2065f` |
 | 超参配置 | `ml/configs/baseline.yaml`（C=1.0, max_features=10000, ngram=(1,2)） |
 | MLflow run | `baseline-v1` |
 | 主要指标 | test_f1 = 0.8328 |
