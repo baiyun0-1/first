@@ -1,25 +1,28 @@
-# 使用轻量级的基础镜像
+# syntax=docker/dockerfile:1
 FROM python:3.11-slim
 
-# 设置工作目录
 WORKDIR /app
 
-# 防止 Python 写入 .pyc 文件，并确保日志实时输出
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# 关闭 .pyc 写入、日志实时输出；模型路径显式指定，避免依赖启动目录
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    MODEL_PATH=/app/models/model_v1.pkl
 
-# 先只拷贝依赖文件，利用 Docker 缓存层（只要依赖没变，就不重新安装）
+# 先只拷贝依赖文件，利用 Docker 层缓存
 COPY requirements.txt .
-
-# 安装依赖，--no-cache-dir 可以大幅减小镜像体积
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 拷贝应用代码（严格按照大纲：不 COPY . .）
-COPY app/ ./app/
-COPY ml/ ./ml/
+# 只拷贝推理真正需要的东西：
+# app/ 是服务代码，models/ 是训练产物（model_v1.pkl 已入库，clone 即可构建）
+COPY --chown=10001:10001 app/ ./app/
+COPY --chown=10001:10001 models/ ./models/
 
-# 暴露端口
+# 以非 root 运行：直接用数字 UID，不依赖镜像里是否存在 useradd
+USER 10001:10001
+
 EXPOSE 8000
 
-# 启动 FastAPI
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
+
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
