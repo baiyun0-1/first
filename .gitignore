@@ -7,18 +7,15 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
-# ==== MLflow 本地实验数据（使用本地 file backend）====
+# ==== MLflow 本地实验数据 ====
 mlruns/
 mlartifacts/
 mlflow.db
 
 # ==== DVC 数据 ====
-# 原始数据不入 Git，只提交 .dvc 指针文件。
-# 注意必须用 data/* 而不是 data/，否则 git 不会进入该目录，!data/*.dvc 无法生效。
-data/*
-!data/*.dvc
-!data/.gitkeep
-!data/.gitignore
+# 原始数据由 data/.gitignore（DVC 自动维护）逐文件忽略，这里不要再写 data/ 或 data/*：
+# 只要根 .gitignore 里出现 data/ 或 data/* 这类目录级规则，DVC 的索引就扫描不到
+# data/ 下的 .dvc 指针文件，默认的 dvc pull / dvc status 会误报「没有跟踪任何数据」。
 
 # ==== 模型产物 ====
 # 推理服务需要的 model_v1.pkl 必须入库：CI / docker build 只 checkout 代码，

@@ -32,7 +32,9 @@ data/imdb_v4.csv  2001 条（1401/300/300）   ← data-v2
 | —（中间态） | `data/imdb_v3.csv` | 2500 | `c6cdef524357df9e75fd6c8279c2a8a5` | 无 | — |
 | `data-v2` | `data/imdb_v4.csv` | 2001 | `1dbc6282ccf17c82dc5eaedb684e45fb` | `data-v2` | `654c13a87be834485934a2f94eefff3596ed508e` |
 
-对应的指针文件是 `data/imdb_v2.csv.dvc`、`data/imdb_v3.csv.dvc`、`data/imdb_v4.csv.dvc`，原始 CSV 不会进入 Git（`.gitignore` 用 `data/*` + `!data/*.dvc` 只放行指针）。
+对应的指针文件是 `data/imdb_v2.csv.dvc`、`data/imdb_v3.csv.dvc`、`data/imdb_v4.csv.dvc`，原始 CSV 不会进入 Git：三个 CSV 由 `data/.gitignore`（DVC 自动维护）逐文件忽略。
+
+> 注意：根目录 `.gitignore` 里**不要**写 `data/` 或 `data/*`。这种目录级规则会让 DVC 索引扫描不到 `data/` 下的 `.dvc` 指针文件，导致默认的 `dvc pull` / `dvc status` 误以为仓库里没有跟踪任何数据。
 
 ## 4. 远端存储
 
