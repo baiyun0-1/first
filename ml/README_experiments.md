@@ -13,6 +13,7 @@
 - 超参：`TF-IDF(max_features=10000, ngram_range=(1,2))` + `LogisticRegression(C=1.0)`
 - **test F1 = 0.8328**
 - 训练脚本 commit：`e73dd4d3`，数据 md5：`48978ce7a8aa6e804962a2f4af700159`
+- MLflow run_id：`81cf73188a7b4013bc5985130a48eb31`（同名 `baseline-v1` 有 3 条，以此为准）
 - 复现命令：`python -m ml.train --config ml/configs/baseline.yaml`
 
 ## 3. 实验对比

@@ -63,5 +63,5 @@ dvc status
 
 ## 6. 变更记录
 
-- 2026-10-19：修正 `.gitignore`（`data/` → `data/*` + `!data/*.dvc`），否则 `.dvc` 指针文件被忽略、`dvc add` 会直接报错；三个指针全部按工作区文件重新 `dvc add`，并 `dvc push` 到 Azure。
+- 2026-10-19：修正 `.gitignore` 规则：根目录不写 `data/` / `data/*`，三个 CSV 由 `data/.gitignore` 逐文件忽略，`.dvc` 指针正常入库；三个指针全部按工作区文件重新 `dvc add`，并 `dvc push` 到 Azure。
 - 2026-10-17：首次建立 `data-v1` / `data-v2` 两个版本。

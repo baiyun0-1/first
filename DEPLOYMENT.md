@@ -9,7 +9,7 @@
 | 合并到 `staging` | `deploy-staging.yml` | 生成 staging `.env`，构建 `ml-app:staging` |
 | 合并到 `main` | `deploy-production.yml` | 生成 production `.env`，构建 `ml-app:production` |
 
-`dev` 与 `main` 已开启分支保护；`staging` 目前仅靠 PR 流程约束（建议也开启保护）。
+`dev`、`staging`、`main` 均已开启分支保护，PR 合并前必须通过 required status checks（`Lint & Test`、`Build & Smoke-test Image`）。
 
 ## 2. GitHub Secrets 配置
 
